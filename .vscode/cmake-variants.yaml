@@ -1,0 +1,28 @@
+buildType:
+  default: debug
+  description: Build types
+  choices:
+    debug:
+      short: Debug
+      long: Include debugging information without optimizations
+      buildType: Debug
+      settings:
+        PMEM_MANAGER_BUILD_TESTS: ON
+        DBGROUP_TEST_THREAD_NUM: "8"
+        DBGROUP_TEST_TMP_PMEM_PATH: "/pmem_tmp"
+    relWithDebInfo:
+      short: RelWithDebInfo
+      long: Perform optimizations and include debugging informatin
+      buildType: RelWithDebInfo
+      settings:
+        PMEM_MANAGER_BUILD_TESTS: ON
+        DBGROUP_TEST_THREAD_NUM: "8"
+        DBGROUP_TEST_TMP_PMEM_PATH: "/pmem_tmp"
+    release:
+      short: Release
+      long: Perform optimizations and omit debugging informatin
+      buildType: Release
+      settings:
+        PMEM_MANAGER_BUILD_TESTS: ON
+        DBGROUP_TEST_THREAD_NUM: "8"
+        DBGROUP_TEST_TMP_PMEM_PATH: "/pmem_tmp"
