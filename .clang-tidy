@@ -2,16 +2,21 @@
 Checks: '
 -*,
 clang-diagnostic-*,
+-clang-diagnostic-c++17-extensions,
 bugprone-*,
+-bugprone-easily-swappable-parameters,
 cert-*,
 -cert-err58-cpp,
 -cert-msc32-c,
 -cert-msc51-cpp,
 cppcoreguidelines-*,
 -cppcoreguidelines-avoid-c-arrays,
+-cppcoreguidelines-avoid-magic-numbers,
+-cppcoreguidelines-init-variables,
 -cppcoreguidelines-non-private-member-variables-in-classes,
 -cppcoreguidelines-owning-memory,
 -cppcoreguidelines-pro-bounds-constant-array-index,
+-cppcoreguidelines-pro-bounds-pointer-arithmetic,
 -cppcoreguidelines-pro-type-const-cast,
 -cppcoreguidelines-pro-type-reinterpret-cast,
 concurrency-*,
@@ -31,7 +36,11 @@ modernize-*,
 readability-*,
 -readability-avoid-const-params-in-decls,
 -readability-braces-around-statements,
+-readability-function-cognitive-complexity,
+-readability-identifier-length,
+-readability-magic-numbers,
 performance-*,'
+-performance-no-int-to-ptr,
 WarningsAsErrors: ''
 HeaderFilterRegex: '(include|src|test)/.*\.hpp$'
 AnalyzeTemporaryDtors: false

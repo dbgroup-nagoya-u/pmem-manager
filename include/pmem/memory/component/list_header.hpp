@@ -104,7 +104,7 @@ class alignas(kCacheLineSize) ListHeader
   /**
    * @brief Get the temporary field for memory allocation.
    *
-   * @param i the position of fields (0 <= i <= 13).
+   * @param i the position of fields (0 <= i <= 12).
    * @return the address of the specified temporary field.
    */
   auto
@@ -112,7 +112,7 @@ class alignas(kCacheLineSize) ListHeader
       const size_t i)  //
       -> PMEMoid *
   {
-    assert(0 <= i && i < kTmpFieldNum);
+    assert(i < kTmpFieldNum);
 
     AssignCurrentThreadIfNeeded();
     return &(tls_fields_->tmp_oids[i]);

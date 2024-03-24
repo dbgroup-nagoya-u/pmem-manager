@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Database Group, Nagoya University
+ * Copyright 2024 Database Group, Nagoya University
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ namespace dbgroup::pmem::memory
 /**
  * @brief A class to manage garbage collection.
  *
- * @tparam T a target class of garbage collection.
+ * @tparam GCTargets Target classes of garbage collection.
  */
 template <class... GCTargets>
 class EpochBasedGC
@@ -70,10 +70,11 @@ class EpochBasedGC
   /**
    * @brief Construct a new instance.
    *
-   * @param pmem_path the path to a pmemobj pool for GC.
-   * @param gc_size the memory capacity for GC.
-   * @param gc_interval_micro_sec the duration of interval for GC.
-   * @param gc_thread_num the maximum number of threads to perform GC.
+   * @param pmem_path The path to a pmemobj pool for GC.
+   * @param gc_size The memory capacity for GC.
+   * @param layout_name The layout name.
+   * @param gc_interval_micro_sec The duration of interval for GC.
+   * @param gc_thread_num The maximum number of threads to perform GC.
    */
   explicit EpochBasedGC(  //
       const std::string &pmem_path,
@@ -132,8 +133,8 @@ class EpochBasedGC
    *##########################################################################*/
 
   /**
-   * @brief Create a guard instance to protect garbage based on the scoped locking
-   * pattern.
+   * @brief Create a guard instance to protect garbage based on the scoped
+   * locking pattern.
    *
    * @return A guard instance to keep the current epoch.
    */
@@ -151,11 +152,11 @@ class EpochBasedGC
   /**
    * @brief Get the temporary field for memory allocation.
    *
-   * @tparam Target a class for representing target garbage.
-   * @param i the position of fields (0 <= i <= 13).
-   * @return the address of the specified temporary field.
+   * @tparam Target A class for representing target garbage.
+   * @param i The position of fields (0 <= i <= 12).
+   * @return The address of the specified temporary field.
    */
-  template <class Target>
+  template <class Target = DefaultTarget>
   auto
   GetTmpField(         //
       const size_t i)  //
@@ -167,10 +168,10 @@ class EpochBasedGC
   /**
    * @brief Get the unreleased temporary fields of each thread.
    *
-   * @tparam Target a class for representing target garbage.
-   * @return unreleased temporary fields if exist.
+   * @tparam Target A class for representing target garbage.
+   * @return Unreleased temporary fields if exist.
    */
-  template <class Target>
+  template <class Target = DefaultTarget>
   auto
   GetUnreleasedFields()  //
       -> std::vector<std::array<PMEMoid *, kTmpFieldNum>>
@@ -181,25 +182,27 @@ class EpochBasedGC
   /**
    * @brief Add a new garbage instance.
    *
-   * @tparam Target a class for representing target garbage.
-   * @param garbage_ptr a pointer to a target garbage.
+   * @tparam Target A class for representing target garbage.
+   * @param oid A pointer to a target garbage.
    */
-  template <class Target>
+  template <class Target = DefaultTarget>
   void
-  AddGarbage(PMEMoid *ptr)
+  AddGarbage(  //
+      PMEMoid *oid)
   {
-    GetGarbageList<Target>()->AddGarbage(epoch_manager_.GetCurrentEpoch(), ptr);
+    GetGarbageList<Target>()->AddGarbage(epoch_manager_.GetCurrentEpoch(), oid);
   }
 
   /**
    * @brief Reuse a released memory page if it exists.
    *
-   * @tparam Target a class for representing target garbage.
-   * @param out_oid an address to be stored a reusable page.
+   * @tparam Target A class for representing target garbage.
+   * @param[out] out_oid The address to be stored a reusable page.
    */
-  template <class Target>
+  template <class Target = DefaultTarget>
   void
-  GetPageIfPossible(PMEMoid *out_oid)
+  GetPageIfPossible(  //
+      PMEMoid *out_oid)
   {
     static_assert(Target::kReusePages);
     GetGarbageList<Target>()->GetPageIfPossible(out_oid);
@@ -249,7 +252,7 @@ class EpochBasedGC
    * Internal constants
    *##########################################################################*/
 
-  /// The expected maximum number of threads.
+  /// @brief The expected maximum number of threads.
   static constexpr size_t kMaxThreadNum = ::dbgroup::thread::kMaxThreadNum;
 
   /*############################################################################
@@ -275,8 +278,9 @@ class EpochBasedGC
   /**
    * @brief Create the space for garbage lists for all the target garbage.
    *
-   * @tparam Target the current class in garbage targets.
-   * @tparam Tails the remaining classes in garbage targets.
+   * @tparam Target The current class in garbage targets.
+   * @tparam Tails The remaining classes in garbage targets.
+   * @param pos The position of the current target in a root region.
    */
   template <class Target, class... Tails>
   void
@@ -310,8 +314,9 @@ class EpochBasedGC
   /**
    * @brief Destroy all the garbage lists for destruction.
    *
-   * @tparam Target the current class in garbage targets.
-   * @tparam Tails the remaining classes in garbage targets.
+   * @tparam Target The current class in garbage targets.
+   * @tparam Tails The remaining classes in garbage targets.
+   * @param pos The position of the current target in a root region.
    */
   template <class Target, class... Tails>
   void
@@ -334,9 +339,10 @@ class EpochBasedGC
 
   /**
    * @tparam Target a class for representing a target garbage.
-   * @tparam Head the current class in garbage targets.
-   * @tparam Tails the remaining classes in garbage targets.
-   * @return unreleased temporary fields if exist.
+   * @tparam Head The current class in garbage targets.
+   * @tparam Tails The remaining classes in garbage targets.
+   * @param pos The position of the current target in a root region.
+   * @return Unreleased temporary fields if exist.
    */
   template <class Target, class Head, class... Tails>
   auto
@@ -368,8 +374,8 @@ class EpochBasedGC
    *##########################################################################*/
 
   /**
-   * @tparam Target a class for representing target garbage.
-   * @return the head of a linked list of garbage nodes and its mutex object.
+   * @tparam Target A class for representing target garbage.
+   * @return The head of a linked list of garbage nodes and its mutex object.
    */
   template <class Target>
   [[nodiscard]] auto
@@ -383,9 +389,9 @@ class EpochBasedGC
   /**
    * @brief Clear registered garbage if possible.
    *
-   * @tparam Target the current class in garbage targets.
-   * @tparam Tails the remaining classes in garbage targets.
-   * @param protected_epoch an epoch value to be protected.
+   * @tparam Target The current class in garbage targets.
+   * @tparam Tails The remaining classes in garbage targets.
+   * @param protected_epoch An epoch to be protected.
    */
   template <class Target, class... Tails>
   void
@@ -447,32 +453,32 @@ class EpochBasedGC
    * Internal member variables
    *##########################################################################*/
 
-  /// The duration of garbage collection in micro seconds.
+  /// @brief The duration of garbage collection in micro seconds.
   const std::chrono::microseconds gc_interval_{};
 
-  /// The maximum number of cleaner threads
+  /// @brief The maximum number of cleaner threads
   const size_t gc_thread_num_{1};
 
-  /// An epoch manager.
+  /// @brief An epoch manager.
   ::dbgroup::thread::EpochManager epoch_manager_{};
 
-  /// A thread to run garbage collection.
+  /// @brief A thread to run garbage collection.
   std::thread gc_thread_{};
 
-  /// Worker threads to release garbage
+  /// @brief Worker threads to release garbage
   std::vector<std::thread> cleaner_threads_{};
 
-  /// A flag to check whether garbage collection is running.
+  /// @brief A flag to check whether garbage collection is running.
   std::atomic_bool gc_is_running_{false};
 
-  /// The heads of linked lists for each GC target.
+  /// @brief The heads of linked lists for each GC target.
   decltype(ConvToTuple<DefaultTarget, GCTargets...>()) garbage_lists_ =
       ConvToTuple<DefaultTarget, GCTargets...>();
 
-  /// The pmemobj_pool for holding garbage lists.
+  /// @brief The pmemobj_pool for holding garbage lists.
   PMEMobjpool *pop_{nullptr};
 
-  /// The root object for accessing each garbage list.
+  /// @brief The root object for accessing each garbage list.
   PMEMoid *root_{nullptr};
 };
 
