@@ -29,9 +29,9 @@
   // C/C++ settings
   "C_Cpp.codeAnalysis.runAutomatically": true,
   "C_Cpp.codeAnalysis.clangTidy.enabled": true,
-  "C_Cpp.codeAnalysis.clangTidy.path": "/usr/bin/clang-tidy",
-  "C_Cpp.codeAnalysis.clangTidy.useBuildPath": true,
-  "C_Cpp.default.compileCommands": "build/vscode/compile_commands.json",
+  // "C_Cpp.codeAnalysis.clangTidy.path": "/usr/bin/clang-tidy",
+  // "C_Cpp.codeAnalysis.clangTidy.useBuildPath": true,
+  // "C_Cpp.default.compileCommands": "build/vscode/compile_commands.json",
   // unit test settings
   "testMate.cpp.test.runtimeLimit": 60,
   "testMate.cpp.test.executables": "build/vscode/test/*_test",
@@ -43,6 +43,9 @@
   "cmake.buildDirectory": "${workspaceRoot}/build/vscode",
   "cmake.generator": "Ninja",
   "cmake.options.statusBarVisibility": "compact",
+  "cmake.debugConfig": {
+    "args": []
+  },
   // Markdown settings
   "[markdown]": {
     "editor.tabSize": 4,
@@ -57,9 +60,12 @@
     "alloc",
     "cerr",
     "cout",
+    "cstddef",
     "ctest",
     "DCMAKE",
+    "DDBGROUP",
     "DMEMORY",
+    "DPMEM",
     "DSIMPLE",
     "endl",
     "gtest",
@@ -167,6 +173,11 @@
     "typeindex": "cpp",
     "valarray": "cpp",
     "*.ipp": "cpp",
-    "source_location": "cpp"
+    "source_location": "cpp",
+    "compare": "cpp",
+    "concepts": "cpp",
+    "numbers": "cpp",
+    "semaphore": "cpp",
+    "stop_token": "cpp"
   },
 }
