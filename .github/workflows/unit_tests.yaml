@@ -9,6 +9,7 @@ on:
 
 env:
   BUILD_TYPE: Release
+  RAM_DISK: /mnt/ramdisk
 
 jobs:
   unit_test:
@@ -22,13 +23,16 @@ jobs:
     - name: Install required packages
       shell: bash
       run: >
-        sudo apt update &&
-        sudo apt install -y
+        sudo apt update && sudo apt install -y
         libpmemobj-dev
 
     - name: Create Build Environment
       shell: bash
-      run: cmake -E make_directory ${{github.workspace}}/build
+      run: |
+        cmake -E make_directory ${{github.workspace}}/build
+        sudo mkdir ${RAM_DISK}
+        sudo mount -t tmpfs -o size=512m /dev/shm ${RAM_DISK}
+        sudo chmod 777 ${RAM_DISK}
 
     - name: Configure CMake
       shell: bash
@@ -37,6 +41,7 @@ jobs:
         cmake ${GITHUB_WORKSPACE}
         -DCMAKE_BUILD_TYPE=${BUILD_TYPE}
         -DPMEM_MANAGER_BUILD_TESTS=ON
+        -DDBGROUP_TEST_TMP_PMEM_PATH=${RAM_DISK}
 
     - name: Build
       shell: bash
