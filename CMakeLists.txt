@@ -8,7 +8,7 @@ endif()
 # project information
 project(
   pmem_manager
-  VERSION "0.1.0"
+  VERSION "0.2.0"
   DESCRIPTION "A utility library for managing persistent memory."
   LANGUAGES "CXX"
 )
