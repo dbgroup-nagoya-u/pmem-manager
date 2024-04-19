@@ -170,7 +170,7 @@ class alignas(kCacheLineSize) ListHeader
       const size_t protected_epoch)
   {
     std::unique_lock guard{mtx_, std::defer_lock};
-    if (!guard.try_lock() || gc_head_ == nullptr) return;
+    if (!guard.try_lock() || gc_head_ == nullptr || OID_IS_NULL(*gc_head_)) return;
 
     // destruct or release garbages
     if constexpr (!Target::kReusePages) {

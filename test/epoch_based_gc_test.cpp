@@ -41,12 +41,12 @@ auto *const env = testing::AddGlobalTestEnvironment(new TmpDirManager);
  * Global constants
  *############################################################################*/
 
-constexpr size_t kSize = PMEMOBJ_MIN_POOL * 16;  // 128MiB
+constexpr size_t kThreadNum = DBGROUP_TEST_THREAD_NUM;
+constexpr size_t kSize = PMEMOBJ_MIN_POOL * 2 * kThreadNum;
 constexpr const char *kPoolName = "memory_manager_epoch_based_gc_on_pmem_test";
 constexpr const char *kGCName = "memory_manager_epoch_based_gc_on_pmem_test_gc";
 constexpr const char *kLayout = "gc_on_pmem_test";
 constexpr auto kModeRW = S_IRUSR | S_IWUSR;  // NOLINT
-constexpr size_t kThreadNum = DBGROUP_TEST_THREAD_NUM;
 
 /*##############################################################################
  * Global type aliases
