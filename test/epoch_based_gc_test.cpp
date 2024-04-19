@@ -254,7 +254,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
     // check there is no referece to target pointers
     for (auto &&target_weak : target_weak_ptrs) {
-      EXPECT_TRUE(target_weak.expired());
+      ASSERT_TRUE(target_weak.expired());
     }
   }
 
@@ -269,7 +269,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
     // check there is no referece to target pointers
     for (auto &&target_weak : target_weak_ptrs) {
-      EXPECT_TRUE(target_weak.expired());
+      ASSERT_TRUE(target_weak.expired());
     }
   }
 
@@ -301,7 +301,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
       // check target pointers remain
       for (auto &&target_weak : target_weak_ptrs) {
-        EXPECT_FALSE(target_weak.expired());
+        ASSERT_FALSE(target_weak.expired());
       }
     }
 
@@ -317,7 +317,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
     // check there is no referece to target pointers
     for (auto &&target_weak : target_weak_ptrs) {
-      EXPECT_TRUE(target_weak.expired());
+      ASSERT_TRUE(target_weak.expired());
     }
   }
 
