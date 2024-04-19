@@ -230,6 +230,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
     // delete remaining instances
     for (auto &&elem : arr) {
+      [[maybe_unused]] std::lock_guard guard{elem.first};
       if (!OID_IS_NULL(elem.second)) {
         gc_->AddGarbage<SharedPtrTarget>(&(elem.second));
       }
