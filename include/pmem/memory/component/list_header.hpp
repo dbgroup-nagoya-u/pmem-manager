@@ -92,9 +92,6 @@ class alignas(kCacheLineSize) ListHeader
       delete reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_))->dram;
       pmemobj_free(gc_head_);
     }
-    if (!OID_IS_NULL(*tls_oid_)) {
-      pmemobj_free(tls_oid_);
-    }
   }
 
   /*############################################################################

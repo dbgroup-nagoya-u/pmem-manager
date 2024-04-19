@@ -120,9 +120,6 @@ class EpochBasedGC
     // stop garbage collection
     StopGC();
 
-    if (root_ != nullptr && OID_IS_NULL(*root_)) {
-      pmemobj_free(root_);
-    }
     if (pop_ != nullptr) {
       pmemobj_close(pop_);
     }
@@ -326,7 +323,6 @@ class EpochBasedGC
     using ListsPtr = std::unique_ptr<GarbageList<Target>[]>;
     auto &lists = std::get<ListsPtr>(garbage_lists_);
     lists.reset(nullptr);
-    pmemobj_free(&(root_[pos]));
 
     if constexpr (sizeof...(Tails) > 0) {
       DestroyGarbageLists<Tails...>(pos + 1);
