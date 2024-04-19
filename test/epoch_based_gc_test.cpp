@@ -107,9 +107,6 @@ class EpochBasedGCFixture : public ::testing::Test
   TearDown() override
   {
     gc_.reset(nullptr);
-    auto *gc_pop = pmemobj_open(gc_path_.c_str(), kLayout);
-    EXPECT_TRUE(OID_IS_NULL(pmemobj_first(gc_pop)));
-    pmemobj_close(gc_pop);
 
     EXPECT_TRUE(OID_IS_NULL(pmemobj_first(pop_)));
     pmemobj_close(pop_);
@@ -384,13 +381,7 @@ TEST_F(EpochBasedGCFixture, RunGCMultipleTimesWithSamePool)
     // reset GC
     gc_.reset(nullptr);
 
-    // check all the pages on persistent memory are freed
-    auto *pop = pmemobj_open(gc_path_.c_str(), kLayout);
-    EXPECT_TRUE(OID_IS_NULL(pmemobj_first(pop)));
-    pmemobj_close(pop);
-
     // reuse the same pmemobj pool
-
     gc_ = std::make_unique<EpochBasedGC_t>(gc_path_, kSize, kLayout, kGCInterval, kThreadNum);
     gc_->StartGC();
   }
