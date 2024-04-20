@@ -183,7 +183,7 @@ class alignas(kCacheLineSize) ListHeader
         return;
       }
       GarbageListInDRAM::Clear<T>(gc_head_, protected_epoch, gc_tmp_);
-      cli_head_ = gc_head_;
+      cli_head_ = reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_));
     }
 
     auto *dram = reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_))->dram;

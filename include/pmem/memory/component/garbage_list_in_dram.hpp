@@ -143,27 +143,31 @@ class alignas(kCacheLineSize) GarbageListInDRAM
       auto pos = dram->begin_pos_.load(kAcquire);
       if (pos > 0) {
         reuse_head = nullptr;
-        if (pos == kBufferSize) {
-          pmem = GarbageListInPMEM::ExchangeHead(pmem, list_oid, tmp_oid);
+        if (pos < kBufferSize) {
+          list_oid = &(pmem->next);
+          tmp_oid = &(pmem->tmp);
+        } else {
+          GarbageListInPMEM::ExchangeHead(pmem, list_oid, tmp_oid);
+          delete dram;
+        }
+        continue;
+      }
+
+      // fount the fully destructed list
+      if (reuse_head != nullptr && reuse_head->begin_pos_.load(kRelaxed) == 0) {
+        auto cur = reuse_head->next_.load(kRelaxed);
+        const auto next = dram->next_.load(kRelaxed);
+        if ((cur & kUsed) == 0
+            && reuse_head->next_.compare_exchange_strong(cur, next, kRelease, kRelaxed)) {
+          for (; pos < kBufferSize; ++pos) {
+            pmem->ReleaseGarbage(pos);
+          }
+          GarbageListInPMEM::ExchangeHead(pmem, list_oid, tmp_oid);
           delete dram;
           continue;
         }
-      } else {
-        if (reuse_head != nullptr && reuse_head->begin_pos_.load(kRelaxed) == 0) {
-          auto cur = reuse_head->next_.load(kRelaxed);
-          const auto next = dram->next_.load(kRelaxed);
-          if ((cur & kUsed) == 0
-              && reuse_head->next_.compare_exchange_strong(cur, next, kRelease, kRelaxed)) {
-            for (; pos < kBufferSize; ++pos) {
-              pmem->ReleaseGarbage(pos);
-            }
-            pmem = GarbageListInPMEM::ExchangeHead(pmem, list_oid, tmp_oid);
-            delete dram;
-            continue;
-          }
-        }
-        reuse_head = dram;
       }
+      reuse_head = dram;
       list_oid = &(pmem->next);
       tmp_oid = &(pmem->tmp);
     }
