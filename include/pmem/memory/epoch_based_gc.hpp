@@ -273,6 +273,24 @@ class EpochBasedGC
   }
 
   /**
+   * @param addr The begin address.
+   * @return The head of thread local regions.
+   */
+  static constexpr auto
+  GetTLSHead(            //
+      const void *addr)  //
+      -> TLSFields *
+  {
+    constexpr uintptr_t kMask = kPMEMLineSize - 1;
+    auto ptr = reinterpret_cast<uintptr_t>(addr);
+    if ((ptr & kMask) > 0) {
+      // move the address to the Intel Optane alignment
+      ptr = (ptr & ~kMask) + kPMEMLineSize;
+    }
+    return reinterpret_cast<TLSFields *>(ptr);
+  }
+
+  /**
    * @brief Create the space for garbage lists for all the target garbage.
    *
    * @tparam Target The current class in garbage targets.
@@ -289,18 +307,17 @@ class EpochBasedGC
     lists.reset(new GarbageList<Target>[kMaxThreadNum]);
 
     auto *list_oid = &(root_[pos]);
-    if (OID_IS_NULL(*list_oid)) {
-      Zalloc(pop_, list_oid, sizeof(PMEMoid) * kMaxThreadNum);
+    if (OID_IS_NULL(*list_oid)) {  // the first call
+      Zalloc(pop_, list_oid, sizeof(TLSFields) * (kMaxThreadNum + 1));
     }
 
-    auto *oids = reinterpret_cast<PMEMoid *>(pmemobj_direct(*list_oid));
+    auto *tls_fields = GetTLSHead(pmemobj_direct(*list_oid));
     for (size_t i = 0; i < kMaxThreadNum; ++i) {
-      auto *oid = &(oids[i]);
-      if (!OID_IS_NULL(*oid)) {  // need recovery
-        auto *tls_fields = reinterpret_cast<TLSFields *>(pmemobj_direct(*oid));
-        component::GarbageListInPMEM::ReleaseAllGarbages(tls_fields);
+      auto *tls_field = &(tls_fields[i]);
+      if (!OID_IS_NULL(tls_field->head)) {  // need recovery
+        component::GarbageListInPMEM::ReleaseAllGarbages(tls_field);
       }
-      lists[i].SetPMEMInfo(pop_, oid);
+      lists[i].SetPMEMInfo(pop_, tls_field);
     }
 
     if constexpr (sizeof...(Tails) > 0) {
@@ -350,11 +367,9 @@ class EpochBasedGC
       std::vector<std::array<PMEMoid *, kTmpFieldNum>> list_vec{};
       list_vec.reserve(kMaxThreadNum);
 
-      auto *oids = reinterpret_cast<PMEMoid *>(pmemobj_direct(root_[pos]));
+      auto *tls_fields = GetTLSHead(pmemobj_direct(root_[pos]));
       for (size_t i = 0; i < kMaxThreadNum; ++i) {
-        auto &&oid = oids[i];
-        if (OID_IS_NULL(oid)) continue;
-        auto *tls = reinterpret_cast<TLSFields *>(pmemobj_direct(oid));
+        auto *tls = &(tls_fields[i]);
         auto &&[has_dirty, arr] = tls->GetRemainingFields();
         if (!has_dirty) continue;
         list_vec.emplace_back(arr);

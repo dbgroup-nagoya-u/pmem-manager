@@ -149,15 +149,17 @@ class alignas(kCacheLineSize) ListHeader
 
   /**
    * @param pop a pmemobj_pool instance for allocation.
-   * @param tls_oid the pointer to a PMEMoid for thread-local fields.
+   * @param tls thread-local fields.
    */
   void
   SetPMEMInfo(  //
       PMEMobjpool *pop,
-      PMEMoid *tls_oid)
+      TLSFields *tls)
   {
     pop_ = pop;
-    tls_oid_ = tls_oid;
+    tls_fields_ = tls;
+    gc_head_ = &(tls_fields_->head);
+    gc_tmp_ = &(tls_fields_->tmp_head);
   }
 
   /**
@@ -170,7 +172,7 @@ class alignas(kCacheLineSize) ListHeader
       const size_t protected_epoch)
   {
     std::unique_lock guard{mtx_, std::defer_lock};
-    if (!guard.try_lock() || gc_head_ == nullptr) return;
+    if (!guard.try_lock() || gc_head_ == nullptr || OID_IS_NULL(*gc_head_)) return;
 
     // destruct or release garbages
     if constexpr (!Target::kReusePages) {
@@ -178,9 +180,10 @@ class alignas(kCacheLineSize) ListHeader
     } else {
       if (!heartbeat_.expired()) {
         GarbageListInDRAM::Destruct<T>(gc_head_, protected_epoch, gc_tmp_);
-      } else {
-        GarbageListInDRAM::Clear<T>(gc_head_, protected_epoch, gc_tmp_);
+        return;
       }
+      GarbageListInDRAM::Clear<T>(gc_head_, protected_epoch, gc_tmp_);
+      cli_head_ = reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_));
     }
 
     auto *dram = reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_))->dram;
@@ -207,20 +210,14 @@ class alignas(kCacheLineSize) ListHeader
     if (!heartbeat_.expired()) return;
 
     std::lock_guard guard{mtx_};
-    if (OID_IS_NULL(*tls_oid_)) {
-      Zalloc(pop_, tls_oid_, sizeof(TLSFields));
-    }
-    tls_fields_ = reinterpret_cast<TLSFields *>(pmemobj_direct(*tls_oid_));
-    gc_head_ = &(tls_fields_->head);
-    gc_tmp_ = &(tls_fields_->tmp_head);
-
     if (OID_IS_NULL(*gc_head_)) {
       Zalloc(pop_, gc_head_, sizeof(GarbageListInPMEM));
+      cli_tail_ = reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_));
+      cli_tail_->dram = new GarbageListInDRAM{};
+      if constexpr (Target::kReusePages) {
+        cli_head_ = cli_tail_;
+      }
     }
-    cli_tail_ = reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_));
-    cli_tail_->dram = new GarbageListInDRAM{};
-    cli_head_ = cli_tail_;
-
     heartbeat_ = IDManager::GetHeartBeat();
   }
 
@@ -240,14 +237,11 @@ class alignas(kCacheLineSize) ListHeader
   /// @brief The pointer to a pmemobj_pool object.
   PMEMobjpool *pop_{nullptr};
 
-  /// @brief The address of the original PMEMoid of thread local fields.
-  PMEMoid *tls_oid_{nullptr};
-
   /// @brief The pointer to the thread local fields.
   TLSFields *tls_fields_{nullptr};
 
   /// @brief A dummy array for alignment.
-  uint64_t dummy_for_alignment_[1]{};
+  uint64_t dummy_for_alignment_[2]{};
 
   /// @brief A mutex instance for modifying buffer pointers.
   std::mutex mtx_{};

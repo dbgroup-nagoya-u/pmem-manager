@@ -41,12 +41,12 @@ auto *const env = testing::AddGlobalTestEnvironment(new TmpDirManager);
  * Global constants
  *############################################################################*/
 
-constexpr size_t kSize = PMEMOBJ_MIN_POOL * 16;  // 128MiB
+constexpr size_t kThreadNum = DBGROUP_TEST_THREAD_NUM;
+constexpr size_t kSize = PMEMOBJ_MIN_POOL * 2 * kThreadNum;
 constexpr const char *kPoolName = "memory_manager_epoch_based_gc_on_pmem_test";
 constexpr const char *kGCName = "memory_manager_epoch_based_gc_on_pmem_test_gc";
 constexpr const char *kLayout = "gc_on_pmem_test";
 constexpr auto kModeRW = S_IRUSR | S_IWUSR;  // NOLINT
-constexpr size_t kThreadNum = DBGROUP_TEST_THREAD_NUM;
 
 /*##############################################################################
  * Global type aliases
@@ -230,6 +230,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
     // delete remaining instances
     for (auto &&elem : arr) {
+      [[maybe_unused]] std::lock_guard guard{elem.first};
       if (!OID_IS_NULL(elem.second)) {
         gc_->AddGarbage<SharedPtrTarget>(&(elem.second));
       }
@@ -253,7 +254,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
     // check there is no referece to target pointers
     for (auto &&target_weak : target_weak_ptrs) {
-      EXPECT_TRUE(target_weak.expired());
+      ASSERT_TRUE(target_weak.expired());
     }
   }
 
@@ -268,7 +269,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
     // check there is no referece to target pointers
     for (auto &&target_weak : target_weak_ptrs) {
-      EXPECT_TRUE(target_weak.expired());
+      ASSERT_TRUE(target_weak.expired());
     }
   }
 
@@ -300,7 +301,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
       // check target pointers remain
       for (auto &&target_weak : target_weak_ptrs) {
-        EXPECT_FALSE(target_weak.expired());
+        ASSERT_FALSE(target_weak.expired());
       }
     }
 
@@ -316,7 +317,7 @@ class EpochBasedGCFixture : public ::testing::Test
 
     // check there is no referece to target pointers
     for (auto &&target_weak : target_weak_ptrs) {
-      EXPECT_TRUE(target_weak.expired());
+      ASSERT_TRUE(target_weak.expired());
     }
   }
 

@@ -43,8 +43,11 @@ constexpr size_t kWordSize = 8;
 /// @brief The expected cache-line size.
 constexpr size_t kCacheLineSize = 64;
 
+/// @brief Assumes that the size of PMEM read/write units is 256 bytes.
+constexpr size_t kPMEMLineSize = 256;
+
 /// @brief The number of temporary fields per thread.
-constexpr size_t kTmpFieldNum = 13;
+constexpr size_t kTmpFieldNum = 14;
 
 /// @brief The number of garbage in each list.
 constexpr size_t kBufferSize = 252;
