@@ -158,6 +158,8 @@ class alignas(kCacheLineSize) ListHeader
   {
     pop_ = pop;
     tls_fields_ = tls;
+    gc_head_ = &(tls_fields_->head);
+    gc_tmp_ = &(tls_fields_->tmp_head);
   }
 
   /**
@@ -178,9 +180,10 @@ class alignas(kCacheLineSize) ListHeader
     } else {
       if (!heartbeat_.expired()) {
         GarbageListInDRAM::Destruct<T>(gc_head_, protected_epoch, gc_tmp_);
-      } else {
-        GarbageListInDRAM::Clear<T>(gc_head_, protected_epoch, gc_tmp_);
+        return;
       }
+      GarbageListInDRAM::Clear<T>(gc_head_, protected_epoch, gc_tmp_);
+      cli_head_ = gc_head_;
     }
 
     auto *dram = reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_))->dram;
@@ -207,16 +210,14 @@ class alignas(kCacheLineSize) ListHeader
     if (!heartbeat_.expired()) return;
 
     std::lock_guard guard{mtx_};
-    gc_head_ = &(tls_fields_->head);
-    gc_tmp_ = &(tls_fields_->tmp_head);
-
     if (OID_IS_NULL(*gc_head_)) {
       Zalloc(pop_, gc_head_, sizeof(GarbageListInPMEM));
+      cli_tail_ = reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_));
+      cli_tail_->dram = new GarbageListInDRAM{};
+      if constexpr (Target::kReusePages) {
+        cli_head_ = cli_tail_;
+      }
     }
-    cli_tail_ = reinterpret_cast<GarbageListInPMEM *>(pmemobj_direct(*gc_head_));
-    cli_tail_->dram = new GarbageListInDRAM{};
-    cli_head_ = cli_tail_;
-
     heartbeat_ = IDManager::GetHeartBeat();
   }
 
