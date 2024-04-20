@@ -139,17 +139,15 @@ class alignas(kCacheLineSize) GarbageListInDRAM
       dram->mid_pos_.store(mid_pos, kRelease);
       if (mid_pos < kBufferSize) break;
 
-      // check the current list is empty
-      auto pos = dram->begin_pos_.load(kAcquire);
-      if (pos == kBufferSize) {
-        pmem = GarbageListInPMEM::ExchangeHead(pmem, list_oid, tmp_oid);
-        delete dram;
-        continue;
-      }
-
       // check the list can be released
+      auto pos = dram->begin_pos_.load(kAcquire);
       if (pos > 0) {
         reuse_head = nullptr;
+        if (pos == kBufferSize) {
+          pmem = GarbageListInPMEM::ExchangeHead(pmem, list_oid, tmp_oid);
+          delete dram;
+          continue;
+        }
       } else {
         if (reuse_head != nullptr && reuse_head->begin_pos_.load(kRelaxed) == 0) {
           auto cur = reuse_head->next_.load(kRelaxed);
