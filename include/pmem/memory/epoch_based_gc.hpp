@@ -171,7 +171,7 @@ class EpochBasedGC
   template <class Target = DefaultTarget>
   auto
   GetUnreleasedFields()  //
-      -> std::vector<std::array<PMEMoid *, kTmpFieldNum>>
+      -> std::vector<PMEMoid *>
   {
     return GetRemainingPMEMoids<Target, DefaultTarget, GCTargets...>();
   }
@@ -361,17 +361,17 @@ class EpochBasedGC
   auto
   GetRemainingPMEMoids(      //
       const size_t pos = 0)  //
-      -> std::vector<std::array<PMEMoid *, kTmpFieldNum>>
+      -> std::vector<PMEMoid *>
   {
     if constexpr (std::is_same_v<Target, Head>) {
-      std::vector<std::array<PMEMoid *, kTmpFieldNum>> list_vec{};
+      std::vector<PMEMoid *> list_vec{};
       list_vec.reserve(kMaxThreadNum);
 
       auto *tls_fields = GetTLSHead(pmemobj_direct(root_[pos]));
       for (size_t i = 0; i < kMaxThreadNum; ++i) {
         auto *tls = &(tls_fields[i]);
-        auto &&[has_dirty, arr] = tls->GetRemainingFields();
-        if (!has_dirty) continue;
+        auto *arr = tls->GetRemainingFields();
+        if (arr == nullptr) continue;
         list_vec.emplace_back(arr);
       }
       return list_vec;

@@ -17,11 +17,6 @@
 #ifndef PMEM_MEMORY_COMPONENT_TLS_FIELDS_HPP
 #define PMEM_MEMORY_COMPONENT_TLS_FIELDS_HPP
 
-// C++ standard libraries
-#include <array>
-#include <cstddef>
-#include <utility>
-
 // external system libraries
 #include <libpmemobj.h>
 
@@ -67,7 +62,7 @@ struct TLSFields {
    * @retval 2nd: Addresses of each temporary field.
    */
   auto GetRemainingFields()  //
-      -> std::pair<bool, std::array<PMEMoid *, kTmpFieldNum>>;
+      -> PMEMoid *;
 };
 
 }  // namespace dbgroup::pmem::memory::component

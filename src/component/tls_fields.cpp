@@ -18,9 +18,7 @@
 #include "pmem/memory/component/tls_fields.hpp"
 
 // C++ standard libraries
-#include <array>
 #include <cstddef>
-#include <utility>
 
 // external system libraries
 #include <libpmemobj.h>
@@ -47,16 +45,12 @@ TLSFields::HasSamePMEMoid(  //
 
 auto
 TLSFields::GetRemainingFields()  //
-    -> std::pair<bool, std::array<PMEMoid *, kTmpFieldNum>>
+    -> PMEMoid *
 {
-  auto has_dirty = false;
-  std::array<PMEMoid *, kTmpFieldNum> oids{};
   for (size_t i = 0; i < kTmpFieldNum; ++i) {
-    if (OID_IS_NULL(tmp_oids[i])) continue;
-    oids[i] = &(tmp_oids[i]);
-    has_dirty = true;
+    if (!OID_IS_NULL(tmp_oids[i])) return tmp_oids;
   }
-  return {has_dirty, oids};
+  return nullptr;
 }
 
 }  // namespace dbgroup::pmem::memory::component
