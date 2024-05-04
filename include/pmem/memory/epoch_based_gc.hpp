@@ -173,7 +173,7 @@ class EpochBasedGC
   GetUnreleasedFields()  //
       -> std::vector<std::array<PMEMoid *, kTmpFieldNum>>
   {
-    return GetRemainingPMEMoids<Target, GCTargets...>();
+    return GetRemainingPMEMoids<Target, DefaultTarget, GCTargets...>();
   }
 
   /**
