@@ -18,6 +18,7 @@
 #include "pmem/memory/component/garbage_list_in_pmem.hpp"
 
 // C++ standard libraries
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
@@ -87,7 +88,7 @@ GarbageListInPMEM::ReleaseAllGarbages(  //
     }
     for (size_t i = 0; i < kBufferSize; ++i) {
       auto *oid = &(buf->garbages_[i]);
-      if (OID_IS_NULL(*oid) || tls->HasSamePMEMoid(*oid)) continue;
+      if (oid->pool_uuid_lo == 0 || oid->off == 0 || tls->HasSamePMEMoid(*oid)) continue;
       pmemobj_free(oid);
     }
     if (OID_IS_NULL(buf->next)) break;
@@ -102,8 +103,10 @@ GarbageListInPMEM::AddGarbage(  //
     PMEMoid *garbage)
 {
   garbages_[pos].pool_uuid_lo = garbage->pool_uuid_lo;
+  std::atomic_thread_fence(std::memory_order_acq_rel);
   garbages_[pos].off = garbage->off;
-  pmem_persist(&garbages_[pos], sizeof(PMEMoid));
+  pmem_flush(&garbages_[pos], sizeof(PMEMoid));
+  std::atomic_thread_fence(std::memory_order_acq_rel);
 
   garbage->off = kNullOffset;
   pmem_persist(&(garbage->off), kWordSize);
@@ -115,8 +118,10 @@ GarbageListInPMEM::ReusePage(  //
     PMEMoid *out_page)
 {
   out_page->pool_uuid_lo = garbages_[pos].pool_uuid_lo;
+  std::atomic_thread_fence(std::memory_order_acq_rel);
   out_page->off = garbages_[pos].off;
-  pmem_persist(out_page, sizeof(PMEMoid));
+  pmem_flush(out_page, sizeof(PMEMoid));
+  std::atomic_thread_fence(std::memory_order_acq_rel);
 
   garbages_[pos].off = kNullOffset;
   pmem_persist(&(garbages_[pos].off), kWordSize);
